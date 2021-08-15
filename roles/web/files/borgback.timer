@@ -1,0 +1,8 @@
+[Unit]
+Description=Timer For BorgBack service
+
+[Timer]
+OnUnitActiveSec=15m
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,10 @@
+[Unit]
+Description=BorgBackup Script
+
+[Service]
+ExecStart=/bin/bash /root/script-backup.sh
+StandardOutput=append:/var/log/borgback
+StandardError=append:/var/log/borgback
+
+[Install]
+WantedBy=multi-user.target
