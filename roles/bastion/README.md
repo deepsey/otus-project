@@ -68,37 +68,48 @@
         name: myiptables-restore.service
         enabled: yes
 
-        
-#================================ Configure logs ===================================================    
-    
-- name: BASTION SERVER FOR LOGS | INSTALL PACKAGES
-  yum:
-    name: 
-      - systemd-journal-gateway
-      - setools-console
-      - setroubleshoot-server
-      - systemd-journal-gateway
-    state: present
-  
-- name: BASTION SERVER FOR LOGS | ADD LOGS SERVER TO /etc/systemd/journal-upload.conf
-  lineinfile: 
-    path: /etc/systemd/journal-upload.conf
-    line: URL=http://192.168.100.6:19532
-    state: present
+Далее идет настройка отправки логов на центральный сервер
 
-- name: BASTION SERVER FOR LOGS | CONFIG FIREWALLD FOR LOGS
-  shell: firewall-cmd --permanent --zone=public --add-port=19532/tcp ; firewall-cmd --reload
+    #================================ Configure logs ===================================================    
+ 
+Устанавливаем необходимые пакеты
+
+    - name: BASTION SERVER FOR LOGS | INSTALL PACKAGES
+      yum:
+        name: 
+          - systemd-journal-gateway
+          - setools-console
+          - setroubleshoot-server
+          - systemd-journal-gateway
+        state: present
   
-- name: BASTION SERVER | START myiptables-restore.service 
-  systemd:
-    name: myiptables-restore.service
-    state: started    
+Настраиваем systemd-journal-gateway и firewalld
+
+    - name: BASTION SERVER FOR LOGS | ADD LOGS SERVER TO /etc/systemd/journal-upload.conf
+      lineinfile: 
+        path: /etc/systemd/journal-upload.conf
+        line: URL=http://192.168.100.6:19532
+        state: present
+
+    - name: BASTION SERVER FOR LOGS | CONFIG FIREWALLD FOR LOGS
+      shell: firewall-cmd --permanent --zone=public --add-port=19532/tcp ; firewall-cmd --reload
   
-- name: BASTION SERVER FOR LOGS | CONFIGURE SELINUX FOR JOURNAL-REMOTE
-  shell: semanage port -a -t dns_port_t -p tcp 19532    
+Стартуем сервис поднятия таблиц IPTABLES
+
+    - name: BASTION SERVER | START myiptables-restore.service 
+      systemd:
+        name: myiptables-restore.service
+        state: started    
   
-- name: BASTION SERVER FOR LOGS | ENABLE AND START systemd-journal-upload.service 
-  systemd:
-    name: systemd-journal-upload.service
-    enabled: yes
-    state: started 
+Настраиваем SELinux для корректной работы передачи логов
+
+    - name: BASTION SERVER FOR LOGS | CONFIGURE SELINUX FOR JOURNAL-REMOTE
+      shell: semanage port -a -t dns_port_t -p tcp 19532    
+  
+Запускаем systemd-journal-upload.service
+
+    - name: BASTION SERVER FOR LOGS | ENABLE AND START systemd-journal-upload.service 
+      systemd:
+        name: systemd-journal-upload.service
+        enabled: yes
+        state: started 
