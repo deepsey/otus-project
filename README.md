@@ -4,7 +4,7 @@
 
 Проект представляет собой сеть из пяти серверов:
 
-![Иллюстрация к проекту](https://github.com/deepsey/otus-project/raw/master/project.jpg)
+![Иллюстрация к проекту](https://github.com/deepsey/otus-project/raw/main/project.jpg)
 
 Bastion server (hostname: project-bastion) - маршрутизатор-файрволл на входе сети
 Web server (hostname: project-web) - сервер с фронтэндом и бэкэндом
