@@ -1,16 +1,16 @@
-Выпускной проект курса "Administrator Linux. Professional"
+## Выпускной проект курса "Administrator Linux. Professional"
 
-Тема: построение сетевой инфраструктуры на основе типовых сервисов.
+## Тема: построение сетевой инфраструктуры на основе типовых сервисов.
 
 Проект представляет собой сеть из пяти серверов:
 
 ![Иллюстрация к проекту](https://github.com/deepsey/otus-project/raw/main/project.jpg)
 
-Bastion server (hostname: project-bastion) - маршрутизатор-файрволл на входе сети
-Web server (hostname: project-web) - сервер с фронтэндом и бэкэндом
-Mysql server (hostname: project-mysql) - сервер баз данных
-Backup server (hostname: project-backup) - сервер для бэкапов
-Monitor server (hostname: project-monitor) - сервер мониторинга и сбора логов
+**Bastion server** (hostname: project-bastion) - маршрутизатор-файрволл на входе сети  
+**Web server** (hostname: project-web) - сервер с фронтэндом и бэкэндом  
+**Mysql server** (hostname: project-mysql) - сервер баз данных  
+**Backup server** (hostname: project-backup) - сервер для бэкапов  
+**Monitor server** (hostname: project-monitor) - сервер мониторинга и сбора логов  
 
 Bastion "смотрит" одним интерфейсом наружу, для примера приведен внешний IP адрес 192.168.0.100,
 находящийся в сети хостовой машины. Этот адрес является публичным, при поднятии машины Вагрантом
