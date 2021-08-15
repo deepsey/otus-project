@@ -1,1 +1,242 @@
+---
+# tasks file for mysql
 
+- name: MYSQL SERVER | DOWNLOAD PERCONA MYSQL
+  yum:
+    name: https://repo.percona.com/yum/percona-release-latest.noarch.rpm
+    state: present
+        
+- name: MYSQL SERVER | INSTALL PERCONA MYSQL+XTRABACKUP
+  yum:
+    name: 
+      - Percona-Server-server-57
+      - percona-xtrabackup-24
+    state: present
+        
+- name: MYSQL SERVER | START MYSQL
+  systemd:
+    name: mysql
+    state: started
+    enabled: yes  
+    
+- name: MYSQL SERVER | GATHER MYSQL ROOT LOGIN PASSWORD
+  shell: cat /var/log/mysqld.log | grep 'root@localhost:' | awk '{print $11}'
+  register: tmp_root_passwd
+  ignore_errors: true
+       
+- name: MYSQL SERVER | CHANGE MYSQL ROOT PASSWORD
+  shell: mysql -e "SET PASSWORD = PASSWORD('{{ mysql_root_password }}');" --connect-expired-password -uroot -p"{{ tmp_root_passwd.stdout }}"   
+  
+- name: MYSQL SERVER | CREATE DATABASE 
+  shell: mysql -e "CREATE DATABASE {{ database_name }};" -uroot -p{{ mysql_root_password }}
+  
+- name: MYSQL SERVER | INSTALL EPEL REPO PACKAGE FROM STANDARD REPO
+  yum:
+    name: epel-release
+    state: present
+
+- name: MYSQL SERVER | INSTALL PY-MYSQL MODULE FROM EPEL REPO
+  yum:
+    name: python2-PyMySQL
+    state: present  
+  
+- name: MYSQL SERVER | CREATE DATABASE USER
+  community.mysql.mysql_user:
+    login_user: root
+    login_password: '{{ mysql_root_password }}' 
+    name: '{{ database_user }}'
+    password: '{{ database_user_password }}'
+    host: '%' 
+    priv: '{{ database_name }}.*:ALL'
+    state: present   
+
+- name: MYSQL SERVER | PERMIT OUTWARD CONNECTIONS TO SERVER
+  lineinfile: 
+    path: /etc/my.cnf
+    insertafter: '# instructions in http://fedoraproject.org/wiki/Systemd'
+    line: bind-address = 0.0.0.0
+    state: present
+    
+- name: MYSQL SERVER | RESTART MYSQL
+  systemd:
+    name: mysql
+    state: restarted
+    enabled: yes 
+    
+- name: MYSQL SERVER | COPY DUMP WORDPRESS
+  copy:
+    src: files/wordpress.sql
+    dest: /root
+    force: yes    
+    
+- name: MYSQL SERVER | RESTORE DUMP WORDPRESS
+  shell: mysql -uroot -p{{ mysql_root_password }} {{ database_name }} < /root/wordpress.sql   
+  
+- name: MYSQL SERVER | START FIREWALLD
+  systemd:
+    name: firewalld
+    state: started
+    enabled: yes    
+  
+- name: MYSQL SERVER | CONFIG FIREWALLD FOR MYSQL    
+  shell: firewall-cmd --permanent --zone=public --add-port=3306/tcp ; firewall-cmd --reload  
+  
+#================================= Configure monitoring ==============================================
+  
+- name: MYSQL SERVER FOR MONITORING | INSTALL PROMETHEUS NODE_EXPORTER 
+  yum:
+    name: golang-github-prometheus-node-exporter
+    state: present 
+    
+- name: MYSQL SERVER FOR MONITORING | CONFIG FIREWALLD FOR NODE_EXPORTER
+  shell: firewall-cmd --permanent --zone=public --add-port=9100/tcp ; firewall-cmd --reload
+  
+- name: MYSQL SERVER FOR MONITORING | START NODE_EXPORTER
+  systemd:
+    name: node_exporter
+    state: started
+    enabled: yes   
+
+#================================ Configure logs ===================================================    
+
+- name: MYSQL SERVER FOR LOGS | INSTALL PACKAGES
+  yum:
+    name: 
+      - systemd-journal-gateway
+      - setools-console
+      - setroubleshoot-server
+      - systemd-journal-gateway
+    state: present
+ 
+- name: MYSQL SERVER FOR LOGS | ADD LOGS SERVER TO /etc/systemd/journal-upload.conf
+  lineinfile: 
+    path: /etc/systemd/journal-upload.conf
+    line: URL=http://192.168.100.6:19532
+    state: present
+
+- name: MYSQL SERVER FOR LOGS | CONFIG FIREWALLD FOR LOGS
+  shell: firewall-cmd --permanent --zone=public --add-port=19532/tcp ; firewall-cmd --reload
+  
+- name: MYSQL SERVER FOR LOGS | CONFIGURE SELINUX FOR JOURNAL-REMOTE
+  shell: semanage port -a -t dns_port_t -p tcp 19532    
+  
+- name: MYSQL SERVER FOR LOGS | ENABLE AND START systemd-journal-upload.service 
+  systemd:
+    name: systemd-journal-upload.service
+    enabled: yes
+    state: started 
+
+ # =================== Configure backup====================================================================
+
+- name: MYSQL SERVER FOR BACKUP | CHANGE HOSTS FILE
+  lineinfile: 
+    path: /etc/hosts
+    line: 192.168.100.5 project-backup
+    state: present
+        
+- name: MYSQL SERVER FOR BACKUP | CREATE DIR /root/.ssh    
+  file:
+    path: /root/.ssh
+    state: directory
+       
+- name: MYSQL SERVER FOR BACKUP | COPY PRIVATE SSH KEY
+  copy:
+    src: files/id_rsa
+    dest: /root/.ssh
+    mode: '600'
+      
+- name: MYSQL SERVER FOR BACKUP | COPY PUB SSH KEY 
+  copy:
+    src: files/id_rsa.pub
+    dest: /root/.ssh
+    mode: '644'
+    
+- name: MYSQL SERVER FOR BACKUP | COPY PRIVATE SERVER KEY  
+  copy:
+    src: files/ssh_host_rsa_key
+    dest: /etc/ssh
+    mode: '640'
+        
+- name: MYSQL SERVER FOR BACKUP | COPY PUBLIC SERVER KEY  
+  copy:
+    src: files/ssh_host_rsa_key.pub
+    dest: /etc/ssh
+    mode: '644'
+        
+- name: MYSQL SERVER FOR BACKUP | CREATE /root/.ssh/authorized_keys  
+  file:
+    path: /root/.ssh/authorized_keys
+    state: touch
+ 
+- name: MYSQL SERVER FOR BACKUP | CREATE /root/.ssh/known_hosts  
+  file:
+    path: /root/.ssh/known_hosts
+    state: touch   
+    
+- name: MYSQL SERVER FOR BACKUP | COPY THE KEYS TO FILES
+  blockinfile:
+    path: /root/.ssh/authorized_keys
+    block: "{{ lookup('file', 'files/id_rsa_s.pub') }}"
+
+- name: MYSQL SERVER FOR BACKUP | COPY THE KEYS TO FILES
+  blockinfile:
+    path: /root/.ssh/known_hosts
+    block: "{{ lookup('file', 'files/known_hosts_c') }}"
+ 
+- name: MYSQL SERVER FOR BACKUP | COPY full-backup.sh
+  copy:
+    src: files/full-backup.sh
+    dest: /root
+    
+- name: MYSQL SERVER FOR BACKUP | COPY inc-backup.sh
+  copy:
+    src: files/inc-backup.sh
+    dest: /root    
+        
+- name: MYSQL SERVER FOR BACKUP | COPY fullbackup.service
+  copy:
+    src: files/fullbackup.service
+    dest: /etc/systemd/system/ 
+
+- name: MYSQL SERVER FOR BACKUP | COPY fullbackup.timer
+  copy:
+    src: files/fullbackup.timer
+    dest: /etc/systemd/system/     
+    
+- name: MYSQL SERVER FOR BACKUP | COPY incbackup.service
+  copy:
+    src: files/incbackup.service
+    dest: /etc/systemd/system/ 
+
+- name: MYSQL SERVER FOR BACKUP | COPY incbackup.timer
+  copy:
+    src: files/incbackup.timer
+    dest: /etc/systemd/system/     
+        
+- name: MYSQL SERVER FOR BACKUP | DAEMON RELOAD
+  systemd:
+    daemon-reload: yes 
+        
+- name: MYSQL SERVER FOR BACKUP | ENABLE AND START fullbackup.service 
+  systemd:
+    name: fullbackup.service
+    enabled: yes
+    state: started
+        
+- name: MYSQL SERVER FOR BACKUP | ENABLE fullbackup.timer 
+  systemd:
+    name: fullbackup.timer
+    enabled: yes
+    state: started 
+    
+- name: MYSQL SERVER FOR BACKUP | ENABLE AND START incbackup.service 
+  systemd:
+    name: incbackup.service
+    enabled: yes
+    state: started
+        
+- name: MYSQL SERVER FOR BACKUP | ENABLE incbackup.timer 
+  systemd:
+    name: incbackup.timer
+    enabled: yes
+    state: started    
