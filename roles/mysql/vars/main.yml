@@ -1,1 +1,7 @@
+---
+# vars file for mysql
 
+ mysql_root_password: 'Gungland@777'
+ database_name: 'wordpress'
+ database_user: 'wordpress' 
+ database_user_password: 'S0li@riu$954'
