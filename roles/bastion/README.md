@@ -1,42 +1,47 @@
-Настройка сервера Bastion
+#### Настройка сервера Bastion
 
-Для фильтрации трафика используются правила следующие правила цепочки FORWARD
-таблицы filter:
+Для фильтрации трафика используются правила следующие правила цепочки FORWARD  
+таблицы filter:  
 
-iptables -P FORWARD DROP
-iptables -t filter -A FORWARD -p tcp -m multiport --sport 80,443,3000 -j ACCEPT
-iptables -t filter -A FORWARD -p tcp -m multiport --dport 80,443,3000 -j ACCEPT
+    iptables -P FORWARD DROP  
+    iptables -t filter -A FORWARD -p tcp -m multiport --sport 80,443,3000 -j ACCEPT  
+    iptables -t filter -A FORWARD -p tcp -m multiport --dport 80,443,3000 -j ACCEPT  
 
-Таким образом, внутрь проходят только пакеты с портами назначения 80, 443 и 3000.
+Таким образом, внутрь проходят только пакеты с портами назначения 80, 443 и 3000.  
+  
+Для проброса портов используем следующие правила цепочек PREROUTING и POSTROUTING  
+таблицы nat:  
+  
+    iptables -t nat -A PREROUTING -p tcp -i eth1 -d 192.168.0.100 --dport 80 -j DNAT --to-destination 192.168.100.3:80
+    iptables -t nat -A PREROUTING -p tcp -i eth1 -d 192.168.0.100 --dport 443 -j DNAT --to-destination 192.168.100.3:443
+    iptables -t nat -A PREROUTING -p tcp -i eth1 -d 192.168.0.100 --dport 3000 -j DNAT --to-destination 192.168.100.6:3000
+    iptables -t nat -A POSTROUTING -j MASQUERADE
 
-Для проброса портов используем следующие правила цепочек PREROUTING и POSTROUTING
-таблицы nat:
+В плейбук project.yml для настройки сервера после поднятия исполльзуется роль bastion. Далее идет описание  
+файла task/main.yml.  
 
-iptables -t nat -A PREROUTING -p tcp -i eth1 -d 192.168.0.100 --dport 80 -j DNAT --to-destination 192.168.100.3:80
-iptables -t nat -A PREROUTING -p tcp -i eth1 -d 192.168.0.100 --dport 443 -j DNAT --to-destination 192.168.100.3:443
-iptables -t nat -A PREROUTING -p tcp -i eth1 -d 192.168.0.100 --dport 3000 -j DNAT --to-destination 192.168.100.6:3000
-iptables -t nat -A POSTROUTING -j MASQUERADE
-
-В плейбук project.yml для настройки сервера после поднятия исполльзуется роль bastion. Далее идет описание
-файла task/main.yml.
-
-# tasks file for bastion
-- name: BASTION SERVER | COPY iptables_restore.sh
-  copy:
-    src: files/iptables_restore.sh
-    dest: /root
+    # tasks file for bastion  
+    - name: BASTION SERVER | COPY iptables_restore.sh  
+      copy:  
+        src: files/iptables_restore.sh  
+        dest: /root  
+        
 Копируем созданный заранее файл с правилами IPTABLES
 
-- name: BASTION SERVER | COPY IPTABLES FILE
-  copy:
-    src: files/iptables-save
-    dest: /etc/
+    - name: BASTION SERVER | COPY IPTABLES FILE  
+      copy:  
+        src: files/iptables-save  
+        dest: /etc/  
     
-- name: BASTION SERVER | COPY MYIPTABLES-RESTORE UNIT
-  copy:
-    src: files/myiptables-restore.service
-    dest: /etc/systemd/system/  
+Копируем файл юнита для восстановления правил из файла      
     
+    - name: BASTION SERVER | COPY MYIPTABLES-RESTORE UNIT
+      copy:
+        src: files/myiptables-restore.service
+        dest: /etc/systemd/system/  
+        
+Устанавливаем форвардинг   
+
 - name: BASTION SERVER | SET ip_forward
   sysctl:
     name: net.ipv4.ip_forward
