@@ -113,3 +113,22 @@
         name: systemd-journal-upload.service
         enabled: yes
         state: started 
+        
+### Содержание используемых файлов в директории files        
+#### myiptables-restore.service
+    [Unit]
+    Description=iptables Restore Script
+    After=network-online.target  
+
+    [Service]
+    ExecStart=/bin/bash /root/iptables_restore.sh
+
+    [Install]
+    WantedBy=multi-user.target
+
+#### iptables_restore.sh
+    #!/bin/bash
+
+    cat /etc/iptables-save | iptables-restore
+    
+
