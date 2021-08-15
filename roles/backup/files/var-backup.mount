@@ -1,0 +1,11 @@
+[Unit]
+Description=var-backup mount
+
+[Mount]
+What=/dev/sdb
+Where=/var/backup
+Type=ext4
+Options=defaults
+
+[Install]
+WantedBy=multi-user.target
