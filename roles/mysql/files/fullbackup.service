@@ -1,0 +1,9 @@
+[Unit]
+Description=MySQL Full Backup Script
+After=mysqld.service
+
+[Service]
+ExecStart=/bin/bash /root/full-backup.sh
+
+[Install]
+WantedBy=multi-user.target

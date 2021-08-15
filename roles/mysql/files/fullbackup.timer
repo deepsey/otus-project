@@ -1,0 +1,8 @@
+[Unit]
+Description=Timer For MySQL Full Backup service
+
+[Timer]
+OnCalendar=*-*-* 00:00:00
+
+[Install]
+WantedBy=multi-user.target

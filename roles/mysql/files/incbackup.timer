@@ -1,0 +1,8 @@
+[Unit]
+Description=Timer For MySQL Incremental Backup service
+
+[Timer]
+OnUnitActiveSec=1h
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,8 @@
+[Unit]
+Description=MySQL Incremental Backup Script
+
+[Service]
+ExecStart=/bin/bash /root/inc-backup.sh
+
+[Install]
+WantedBy=multi-user.target
