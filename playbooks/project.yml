@@ -1,1 +1,37 @@
+---
 
+##- name: WEB SERVER | CONFIGURE AND APP INSTALL
+##  hosts: monitor
+##  become: true
+  
+##  roles:
+##  - roles/monitor
+  
+- name: BACKUP SERVER | CONFIGURE BACKUP REPOSITORY
+  hosts: backup
+  become: true
+   
+  roles:
+  - roles/backup
+  
+- name: BASTION SERVER | CONFIGURE AND APP INSTALL
+  hosts: bastion
+  become: true
+  
+  roles:
+  - roles/bastion  
+  
+- name: WEB SERVER | CONFIGURE AND APP INSTALL
+  hosts: web
+  become: true
+  
+  roles:
+  - roles/web  
+  
+- name: MYSQL SERVER | DOWNLOAD AND INSTALL PERCONA MYSQL
+  hosts: mysql
+  become: true
+   
+  roles:
+  - roles/mysql
+  
