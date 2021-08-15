@@ -1,0 +1,8 @@
+[Unit]
+Description=Timer For system-journal-remote
+
+[Timer]
+OnActiveSec=1s
+
+[Install]
+WantedBy=multi-user.target
