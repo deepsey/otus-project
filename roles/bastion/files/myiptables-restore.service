@@ -1,0 +1,8 @@
+[Unit]
+Description=iptables Restore Script
+
+[Service]
+ExecStart=/bin/bash /root/iptables_restore.sh
+
+[Install]
+WantedBy=multi-user.target
