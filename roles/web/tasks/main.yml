@@ -1,1 +1,252 @@
+---
+# tasks file for web
 
+- name: WEB SERVER | CHANGE HOSTS FILE
+  lineinfile: 
+    path: /etc/hosts
+    line: 192.168.100.4 project-mysql
+    state: present
+
+- name: WEB SERVER | INSTALL PACKAGES
+  yum:
+    name:
+      - nginx
+      - php-fpm
+      - php-mysqlnd
+      - php-cli
+      - php-json
+      - php-gd
+      - php-ldap
+      - php-odbc
+      - php-pdo
+      - php-opcache
+      - php-pear 
+      - php-xml 
+      - php-xmlrpc 
+      - php-mbstring 
+      - php-snmp 
+      - php-soap 
+      - php-zip
+      - policycoreutils-python-utils
+      - setools-console
+      - setroubleshoot-server
+      - systemd-journal-gateway
+    state: present
+        
+- name: WEB SERVER | START NGINX
+  systemd:
+    name: nginx
+    state: started
+    enabled: yes
+    
+- name: WEB SERVER | CONFIG FIREWALLD FOR HTTP HTTPS
+  shell: firewall-cmd --permanent --zone=public --add-service=http ; firewall-cmd --permanent --zone=public --add-service=https ; firewall-cmd --reload
+  
+- name: WEB SERVER | CREATE HTTML DIR FOR SITE     
+  file:
+    path: /var/www/site.project/html
+    state: directory
+    recurse: yes
+    group: vagrant
+    owner: vagrant 
+
+- name: WEB SERVER | CREATE LOGS DIR FOR SITE     
+  file:
+    path: /var/www/site.project/logs
+    state: directory
+    recurse: yes
+    group: vagrant
+    owner: vagrant
+    
+- name: WEB SERVER | CREATE ACCESS.LOG FOR SITE
+  file:
+    path: /var/www/site.project/logs/access.log
+    state: touch
+    group: vagrant
+    owner: vagrant
+    
+- name: WEB SERVER | CREATE ERROR.LOG FOR SITE
+  file:
+    path: /var/www/site.project/logs/error.log
+    state: touch
+    group: vagrant
+    owner: vagrant 
+    
+- name: WEB SERVER | CREATE SSL CERTS DIR FOR SITE
+  file:
+    path: /var/www/site.project/certs
+    state: directory
+    recurse: yes
+    group: vagrant
+    owner: vagrant    
+    
+- name: WEB SERVER | COPY SSL CERTS FOR SITE
+  copy:
+    src: '{{item}}' 
+    dest: /var/www/site.project/certs/
+  loop:
+    - files/site.project.crt
+    - files/device.key
+    - files/site.project.csr
+    
+- name: WEB SERVER | COPY SITE NGINX CONFIG
+  copy:
+    src: files/site.project.conf
+    dest: /etc/nginx/conf.d/
+    
+- name: WEB SERVER | CONFIGURE SELINUX FOR NGINX
+  shell: semanage fcontext -a -t httpd_sys_rw_content_t /var/www/site.project/logs/access.log ; restorecon -v /var/www/site.project/logs/access.log ; semanage fcontext -a -t httpd_sys_rw_content_t /var/www/site.project/logs/error.log ; restorecon -v /var/www/site.project/logs/error.log
+    
+- name: WEB SERVER | RESTART NGINX
+  systemd:
+    name: nginx
+    state: restarted
+      
+- name: WEB SERVER | COPY SITE CONTENT
+  unarchive:
+    src: files/html.tar.gz
+    dest: /var/www/site.project/html
+    
+- name: WEB SERVER | CHOWN DIR FOR SITE     
+  shell: chown -R vagrant:vagrant /var/www/site.project  
+ 
+- name: WEB SERVER | CONFIGURE SELINUX FOR PHP
+  shell: setsebool -P httpd_can_network_connect 1 ; setsebool -P httpd_execmem 1 ; setsebool -P httpd_can_network_relay 1 ; setsebool -P nis_enabled 1 ; setsebool -P httpd_can_network_connect_db 1
+
+
+#==================== Configure backup====================================================================
+
+- name: WEB SERVER FOR BACKUP | CHANGE HOSTS FILE
+  lineinfile: 
+    path: /etc/hosts
+    line: 192.168.100.5 project-backup
+    state: present
+        
+- name: WEB SERVER FOR BACKUP | CREATE DIR /root/.ssh    
+  file:
+    path: /root/.ssh
+    state: directory
+       
+- name: WEB SERVER FOR BACKUP | COPY PRIVATE SSH KEY
+  copy:
+    src: files/id_rsa
+    dest: /root/.ssh
+    mode: '600'
+      
+- name: WEB SERVER FOR BACKUP | COPY PUB SSH KEY 
+  copy:
+    src: files/id_rsa.pub
+    dest: /root/.ssh
+    mode: '644'
+    
+- name: WEB SERVER FOR BACKUP | COPY PRIVATE SERVER KEY  
+  copy:
+    src: files/ssh_host_rsa_key
+    dest: /etc/ssh
+    mode: '640'
+        
+- name: WEB SERVER FOR BACKUP | COPY PUBLIC SERVER KEY  
+  copy:
+    src: files/ssh_host_rsa_key.pub
+    dest: /etc/ssh
+    mode: '644'
+        
+- name: WEB SERVER FOR BACKUP | CREATE /root/.ssh/authorized_keys  
+  file:
+    path: /root/.ssh/authorized_keys
+    state: touch
+ 
+- name: WEB SERVER FOR BACKUP | CREATE /root/.ssh/known_hosts  
+  file:
+    path: /root/.ssh/known_hosts
+    state: touch   
+    
+- name: WEB SERVER FOR BACKUP | COPY THE KEYS TO FILES
+  blockinfile:
+    path: /root/.ssh/authorized_keys
+    block: "{{ lookup('file', 'files/id_rsa_s.pub') }}"
+
+- name: WEB SERVER FOR BACKUP | COPY THE KEYS TO FILES
+  blockinfile:
+    path: /root/.ssh/known_hosts
+    block: "{{ lookup('file', 'files/known_hosts_c') }}"
+  
+- name: WEB SERVER FOR BACKUP | INSTALL BORGBACKUP
+  shell: wget https://github.com/borgbackup/borg/releases/download/1.1.6/borg-linux64 -O /usr/local/sbin/borg ; chmod +x /usr/local/sbin/borg
+
+- name: WEB SERVER FOR BACKUP | COPY script-backup.sh
+  copy:
+    src: files/script-backup.sh
+    dest: /root
+        
+- name: WEB SERVER FOR BACKUP | REPOSITORY INITIALIZATION
+  shell: BORG_NEW_PASSPHRASE='' /usr/local/sbin/borg init --encryption=keyfile project-backup:/var/backup/project-web-system
+  args:
+    executable: /bin/bash
+      
+- name: WEB SERVER FOR BACKUP | COPY borgback.service
+  copy:
+    src: files/borgback.service
+    dest: /etc/systemd/system/ 
+        
+- name: WEB SERVER FOR BACKUP | COPY borgback.timer
+  copy:
+    src: files/borgback.timer
+    dest: /etc/systemd/system/  
+        
+- name: WEB SERVER FOR BACKUP | CREATE /var/log/borgback  
+  file:
+    path: /var/log/borgback
+    state: touch 
+        
+- name: WEB SERVER FOR BACKUP | DAEMON RELOAD
+  systemd:
+    daemon-reload: yes 
+        
+- name: WEB SERVER FOR BACKUP | ENABLE AND START borgback.service 
+  systemd:
+    name: borgback.service
+    enabled: yes
+    state: started
+        
+- name: WEB SERVER FOR BACKUP | ENABLE borgback.timer 
+  systemd:
+    name: borgback.timer
+    enabled: yes
+    state: started 
+    
+- name: WEB SERVER FOR BACKUP | COPY BORG REPOSITORY KEY TO BACKUP SERVER
+  shell: scp /root/.config/borg/keys/project_backup__var_backup_project_web_system 192.168.100.5:/root/.config/borg/keys/
+  
+#================================= Configure monitoring ===========================================
+  
+- name: MYSQL SERVER FOR MONITORING | INSTALL PROMETHEUS NODE_EXPORTER 
+  yum:
+    name: golang-github-prometheus-node-exporter
+    state: present 
+    
+- name: MYSQL SERVER FOR MONITORING | CONFIG FIREWALLD FOR NODE_EXPORTER
+  shell: firewall-cmd --permanent --zone=public --add-port=9100/tcp ; firewall-cmd --reload
+  
+- name: MYSQL SERVER FOR MONITORING | START NODE_EXPORTER
+  systemd:
+    name: node_exporter
+    state: started
+    enabled: yes   
+    
+#================================ Configure logs ===================================================      
+
+- name: WEB SERVER FOR LOGS | ADD LOGS SERVER TO /etc/systemd/journal-upload.conf
+  lineinfile: 
+    path: /etc/systemd/journal-upload.conf
+    line: URL=http://192.168.100.6:19532
+    state: present
+
+- name: WEB SERVER FOR LOGS | CONFIG FIREWALLD FOR LOGS
+  shell: firewall-cmd --permanent --zone=public --add-port=19532/tcp ; firewall-cmd --reload
+    
+- name: WEB SERVER FOR LOGS | ENABLE AND START systemd-journal-upload.service 
+  systemd:
+    name: systemd-journal-upload.service
+    enabled: yes
+    state: started   
