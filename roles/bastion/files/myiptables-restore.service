@@ -1,5 +1,6 @@
 [Unit]
 Description=iptables Restore Script
+After=network-online.target  
 
 [Service]
 ExecStart=/bin/bash /root/iptables_restore.sh
