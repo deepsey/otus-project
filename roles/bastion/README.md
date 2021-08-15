@@ -40,29 +40,33 @@
         src: files/myiptables-restore.service
         dest: /etc/systemd/system/  
         
-Устанавливаем форвардинг   
+Устанавливаем и активируем форвардинг   
 
-- name: BASTION SERVER | SET ip_forward
-  sysctl:
-    name: net.ipv4.ip_forward
-    value: 1
-    sysctl_set: yes
-    state: present
-    reload: yes
+    - name: BASTION SERVER | SET ip_forward
+      sysctl:
+        name: net.ipv4.ip_forward
+        value: 1
+        sysctl_set: yes
+        state: present
+        reload: yes
           
-- name: BASTION SERVER | ENABLE ip_forward
-  lineinfile:
-    dest: /etc/sysctl.conf
-    line: net.ipv4.ip_forward = 1    
-    
-- name: BASTION SERVER | DAEMON RELOAD
-  systemd:
-    daemon-reload: yes 
+    - name: BASTION SERVER | ENABLE ip_forward
+      lineinfile:
+        dest: /etc/sysctl.conf
+        line: net.ipv4.ip_forward = 1   
         
-- name: BASTION SERVER | ENABLE myiptables-restore.service 
-  systemd:
-    name: myiptables-restore.service
-    enabled: yes
+ Перезагружаем деионы systemd       
+    
+    - name: BASTION SERVER | DAEMON RELOAD
+      systemd:
+        daemon-reload: yes 
+    
+Активируем сервис    
+        
+    - name: BASTION SERVER | ENABLE myiptables-restore.service 
+      systemd:
+        name: myiptables-restore.service
+        enabled: yes
 
         
 #================================ Configure logs ===================================================    
