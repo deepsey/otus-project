@@ -11,6 +11,7 @@
 
     # tasks file for backup
 
+Добавляем в /etc/hosts клиентские машины
 
 - name: BACKUP SERVER | CHANGE HOSTS FILE  
   blockinfile:
@@ -18,8 +19,10 @@
     block: |
       192.168.100.3 project-web
       192.168.100.4 project-mysql
-    state: present  
+    state: present 
     
+Настраиваем подключение по ssh между сервером и клиентами
+
 - name: BACKUP SERVER | CREATE DIR /root/.ssh    
   file:
     path: /root/.ssh
@@ -69,23 +72,33 @@
     path: /root/.ssh/known_hosts
     block: "{{ lookup('file', 'files/known_hosts_s') }}"    
     
+Устанавливаем на сервере borgbackup
+
 - name: BACKUP SERVER | INSTALL BORGBACKUP
   shell: wget https://github.com/borgbackup/borg/releases/download/1.1.6/borg-linux64 -O /usr/local/sbin/borg ; chmod +x /usr/local/sbin/borg
+  
+Создаем директорию для создания бэкапов    
         
 - name: BACKUP SERVER | CREATE DIR /var/backup   
   file:
     path: /var/backup
     state: directory 
+    
+ Создаем файловую систему на диске для бэкапов    
         
 - name: BACKUP SERVER | MAKE FS ON /dev/sdb
   filesystem:
     dev: /dev/sdb
     fstype: ext4
-        
+
+Копируем подготовленный файл юнита монтирования диска для бэкапов в /etc/systemd/system/  
+
 - name: BACKUP SERVER | COPY var-backup.mount
   copy:
     src: files/var-backup.mount
     dest: /etc/systemd/system/
+    
+Перезапускаем демоны, активируем и запускаем var-backup.mount     
         
 - name: BACKUP SERVER | DAEMON RELOAD
   systemd:
@@ -97,33 +110,49 @@
     enabled: yes
     state: started
     
+Создаем директорию для файла ключа репозитория    
+    
 - name: BACKUP SERVER | CREATE DIR /root/.config/borg/keys   
   file:
     path: /root/.config/borg/keys
-    state: directory    
+    state: directory  
+    
+Создаем директорию для бэкапов mysql    
     
 - name: BACKUP SERVER | CREATE DIR FOR MYSQL BACKUP /var/backup/mysql   
   file:
     path: /var/backup/mysql
     state: directory 
 
+Блок для мониторинга
+
 #================================= Configure monitoring ==============================================
-  
+
+Устанавливаем node_exporter
+
 - name: BACKUP SERVER FOR MONITORING | INSTALL PROMETHEUS NODE_EXPORTER 
   yum:
     name: golang-github-prometheus-node-exporter
     state: present 
     
+ Настраиваем firewalld   
+    
 - name: BACKUP SERVER FOR MONITORING | CONFIG FIREWALLD FOR NODE_EXPORTER
   shell: firewall-cmd --permanent --zone=public --add-port=9100/tcp ; firewall-cmd --reload
   
+Активируем и запускаем node_exporter
+
 - name: BACKUP SERVER FOR MONITORING | START NODE_EXPORTER
   systemd:
     name: node_exporter
     state: started
-    enabled: yes      
+    enabled: yes   
+    
+Блок для передачи логов на центральный сервер
 
 #================================ Configure logs ===================================================    
+
+Устанавливаем необходимые пакеты
     
 - name: BACKUP SERVER FOR LOGS | INSTALL PACKAGES
   yum:
@@ -133,6 +162,8 @@
       - setroubleshoot-server
       - systemd-journal-gateway
     state: present
+    
+Настраиваем systemd-journal-gateway и firewalld    
   
 - name: BACKUP SERVER FOR LOGS | ADD LOGS SERVER TO /etc/systemd/journal-upload.conf
   lineinfile: 
@@ -143,8 +174,12 @@
 - name: BACKUP SERVER FOR LOGS | CONFIG FIREWALLD FOR LOGS
   shell: firewall-cmd --permanent --zone=public --add-port=19532/tcp ; firewall-cmd --reload
   
+настраиваем SELinux для systemd-journal-gateway
+  
 - name: BACKUP SERVER FOR LOGS | CONFIGURE SELINUX FOR JOURNAL-REMOTE
-  shell: semanage port -a -t dns_port_t -p tcp 19532    
+  shell: semanage port -a -t dns_port_t -p tcp 19532 
+
+Активируем и запускаем systemd-journal-gateway
   
 - name: BACKUP SERVER FOR LOGS | ENABLE AND START systemd-journal-upload.service 
   systemd:
