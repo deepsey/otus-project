@@ -13,7 +13,7 @@ REPOSITORY="${BORG_SERVER}:/var/backup/$(hostname)-${TYPE_OF_BACKUP}"
 #Create backup
 
 borg create --list -v --stats \
- $REPOSITORY::"etc-{now:%Y-%m-%d-%H-%M}" \
+ $REPOSITORY::"system-{now:%Y-%m-%d-%H-%M}" \
  /                                       \
  --exclude '/proc/*'                     \
  --exclude '/mnt/*'                      \
