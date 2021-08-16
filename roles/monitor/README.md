@@ -8,6 +8,7 @@
 После настройки и запуска сервисов проверяем содержимое директории на центральном сервере  
 
     # ls /var/log/journal/remote  
+    
 #### 2. Для мониторинга устанавливаем prometheus и grafana, на клиентах устанавливаем node_exporter для отдачи метрик.
 После установки и настройки открываем адрес сервера на порту 3000. Страницу открываем через адрес сервера Bastion.
 
@@ -194,3 +195,66 @@
     - name: LOGS SERVER  | CONFIGURE SELINUX FOR JOURNAL-REMOTE
       shell: setsebool -P use_virtualbox 1       
    
+#### 4. После провижинига и запуска сервисов на клиентских машинах проверяем сбор логов
+
+Например, для сервера Web:
+    
+    # journalctl --file /var/log/journal/remote/remote-192.168.100.3.journal
+    
+### Файлы для настройки сервера логов и монитора
+
+#### files/prometheus.service
+
+    [Unit]
+    Description=Prometheus
+    Wants=network-online.target
+    After=network-online.target
+
+    [Service]
+    User=prometheus
+    Group=prometheus
+    ExecStart=/bin/prometheus \
+        --config.file /etc/prometheus/prometheus.yml \
+        --storage.tsdb.path /var/lib/prometheus/ \
+        --web.console.templates=/etc/prometheus/consoles \
+        --web.console.libraries=/etc/prometheus/console_libraries
+
+    [Install]
+    WantedBy=default.target
+    
+#### files/systemd-journal-remote.service    
+
+    [Unit]  
+    Description=Journal Remote Sink Service  
+    Requires=systemd-journal-remote.socket  
+
+    [Service]  
+    ExecStart=/usr/lib/systemd/systemd-journal-remote --listen-http=-3 --output=/var/log/journal/remote/  
+    User=systemd-journal-remote  
+    Group=systemd-journal-remote  
+    PrivateTmp=yes  
+    PrivateDevices=yes  
+    PrivateNetwork=yes  
+    WatchdogSec=10min  
+
+    [Install]
+    Also=systemd-journal-remote.socket 
+    
+#### files/systemd-journal-remote.timer    
+
+    [Unit]
+    Description=Timer For system-journal-remote
+
+    [Timer]
+    OnActiveSec=1s
+
+    [Install]
+    WantedBy=multi-user.target
+
+#### files/dashboard.json, prometheus.yml
+
+Эти файлы служат для автоматической настройки prometheus+grafana
+    
+
+
+    
