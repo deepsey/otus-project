@@ -155,19 +155,20 @@
 
     #================================= Configure monitoring ==============================================
     
-    
+  Устанавливаем node_exporter  
   
     - name: MYSQL SERVER FOR MONITORING | INSTALL PROMETHEUS NODE_EXPORTER 
       yum:
         name: golang-github-prometheus-node-exporter
         state: present 
         
-        
+  Настраиваем firewalld      
     
     - name: MYSQL SERVER FOR MONITORING | CONFIG FIREWALLD FOR NODE_EXPORTER
       shell: firewall-cmd --permanent --zone=public --add-port=9100/tcp ; firewall-cmd --reload
       
       
+  Активируем и запускаем node_exporter
   
     - name: MYSQL SERVER FOR MONITORING | START NODE_EXPORTER
       systemd:
@@ -292,7 +293,7 @@
         
 Копируем и настраиваем systemd юниты для запуска бэкапов mysql, перезагружаем демоны        
         
-    - name: MYSQL SERVER FOR BACKUP | COPY fullbackup.service
+    - name: MYSQL SERVER FOR BACKUP | COPY fullbackup.service        
       copy:
         src: files/fullbackup.service
         dest: /etc/systemd/system/ 
@@ -347,4 +348,52 @@
         name: incbackup.timer
         enabled: yes
         state: started    
+
+
+## Файлы сервисов systemd
+#### fullbackup.service
+
+    [Unit]
+    Description=MySQL Full Backup Script
+    After=mysqld.service
+
+    [Service]
+    ExecStart=/bin/bash /root/full-backup.sh
+
+    [Install]
+    WantedBy=multi-user.target
+    
+#### fullbackup.timer
+
+    [Unit]
+    Description=Timer For MySQL Full Backup service
+
+    [Timer]
+    OnCalendar=*-*-* 00:00:00
+
+    [Install]
+    WantedBy=multi-user.target
+    
+#### incbackup.service
+
+    [Unit]
+    Description=MySQL Incremental Backup Script
+
+    [Service]
+    ExecStart=/bin/bash /root/inc-backup.sh
+
+    [Install]
+    WantedBy=multi-user.target
+    
+#### incbackup.timer
+
+    [Unit]
+    Description=Timer For MySQL Incremental Backup service
+
+    [Timer]
+    OnUnitActiveSec=1h
+
+    [Install]
+    WantedBy=multi-user.target
+
 
