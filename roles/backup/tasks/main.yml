@@ -2,10 +2,12 @@
 # tasks file for backup
 
 - name: BACKUP SERVER | CHANGE HOSTS FILE  
-  lineinfile:   
-    path: /etc/hosts  
-    line: 192.168.100.3 project-mysql 
-    state: present  
+  blockinfile:
+    path: /etc/hosts
+    block: |
+      192.168.100.3 project-web
+      192.168.100.4 project-mysql
+    state: present 
     
 - name: BACKUP SERVER | CREATE DIR /root/.ssh    
   file:
