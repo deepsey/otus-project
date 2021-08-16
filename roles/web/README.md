@@ -111,7 +111,7 @@
         owner: vagrant    
     
     - name: WEB SERVER | COPY SSL CERTS FOR SITE
-      copy:
+      copy:systemd-journal-gateway
         src: '{{item}}' 
         dest: /var/www/site.project/certs/
       loop:
@@ -132,7 +132,7 @@
       shell: semanage fcontext -a -t httpd_sys_rw_content_t /var/www/site.project/logs/access.log ; restorecon -v /var/www/site.project/logs/access.log ; semanage fcontext -a -t httpd_sys_rw_content_t /var/www/site.project/logs/error.log ; restorecon -v /var/www/site.project/logs/error.log
     
 Перезапускаем nginx
-
+systemd-journal-gateway
     - name: WEB SERVER | RESTART NGINX
       systemd:
         name: nginx
@@ -214,7 +214,7 @@
     - name: WEB SERVER FOR BACKUP | COPY THE KEYS TO FILES
       blockinfile:
         path: /root/.ssh/known_hosts
-        block: "{{ lookup('file', 'files/known_hosts_c') }}"
+        block: "{{ lookup('file', 'files/known_hosts_c') }}"systemd-journal-gateway
     
 Устанавливаем на клиенте borgbackup    
   
@@ -305,7 +305,7 @@
 
     #================================ Configure logs ===================================================      
 
-Устанавливаем необходимые пакеты
+Настраиваем systemd-journal-gateway и firewalld    
 
     - name: WEB SERVER FOR LOGS | ADD LOGS SERVER TO /etc/systemd/journal-upload.conf
       lineinfile: 
@@ -313,10 +313,10 @@
         line: URL=http://192.168.100.6:19532
         state: present
     
-Настраиваем systemd-journal-gateway и firewalld    
-
     - name: WEB SERVER FOR LOGS | CONFIG FIREWALLD FOR LOGS
       shell: firewall-cmd --permanent --zone=public --add-port=19532/tcp ; firewall-cmd --reload
+      
+Активируем и запускаем systemd-journal-gateway      
     
     - name: WEB SERVER FOR LOGS | ENABLE AND START systemd-journal-upload.service 
       systemd:
