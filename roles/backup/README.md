@@ -4,7 +4,7 @@
 В этой папке создается репозиторий borgbackup для корпирования с сервера web,
 и папка mysql для создания резервных копий mysql.
 
-В плейбук project.yml для настройки сервера после поднятия исполльзуется роль backup. Далее идет описание  
+В плейбук project.yml для настройки сервера после поднятия используется роль backup. Далее идет описание  
 файла task/main.yml. 
 
 ---
@@ -13,32 +13,32 @@
 
 Добавляем в /etc/hosts клиентские машины
 
-- name: BACKUP SERVER | CHANGE HOSTS FILE  
-  blockinfile:
-    path: /etc/hosts
-    block: |
-      192.168.100.3 project-web
-      192.168.100.4 project-mysql
-    state: present 
+    - name: BACKUP SERVER | CHANGE HOSTS FILE  
+      blockinfile:
+        path: /etc/hosts
+        block: |
+          192.168.100.3 project-web
+          192.168.100.4 project-mysql
+        state: present 
     
 Настраиваем подключение по ssh между сервером и клиентами
 
-- name: BACKUP SERVER | CREATE DIR /root/.ssh    
-  file:
-    path: /root/.ssh
-    state: directory
+    - name: BACKUP SERVER | CREATE DIR /root/.ssh    
+      file:
+        path: /root/.ssh
+        state: directory
        
-- name: BACKUP SERVER | COPY PRIVATE SSH KEY
-  copy:
-    src: files/id_rsa
-    dest: /root/.ssh
-    mode: '600'
+    - name: BACKUP SERVER | COPY PRIVATE SSH KEY
+      copy:
+        src: files/id_rsa
+        dest: /root/.ssh
+        mode: '600'
       
-- name: BACKUP SERVER | COPY PUB SSH KEY 
-  copy:
-    src: files/id_rsa.pub
-    dest: /root/.ssh
-    mode: '644'
+    - name: BACKUP SERVER | COPY PUB SSH KEY 
+      copy:
+        src: files/id_rsa.pub
+        dest: /root/.ssh
+        mode: '644'
     
 - name: BACKUP SERVER | COPY PRIVATE SERVER KEY 
   copy:
