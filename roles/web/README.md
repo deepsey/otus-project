@@ -345,7 +345,7 @@
 Пишем команду для создания бэкапа 
 
     borg create --list -v --stats \
-    $REPOSITORY::"etc-{now:%Y-%m-%d-%H-%M}" \
+    $REPOSITORY::"system-{now:%Y-%m-%d-%H-%M}" \
     /                                       \
     --exclude '/proc/*'                     \
     --exclude '/mnt/*'                      \
