@@ -12,9 +12,13 @@
 После установки и настройки открываем адрес сервера на порту 3000. Страницу открываем через адрес сервера Bastion.
 
 #### 3. Краткое описание настройки сервера через роль ansible tasks/main.yml.
-# tasks file for monitor
 
+    # tasks file for monitor
+    
+Блок настройки мониторинга
     #=========================== MONITORING SERVER ============================================================
+    
+Прописываем сервера для мониторинга в файлу /ets/hosts    
 
     - name: MONITOR SERVER | CHANGE HOSTS FILE
       blockinfile:
@@ -26,6 +30,7 @@
           192.168.100.5 project-backup
         state: present
        
+Устанавливаем пакеты prometheus И grafana
 
     - name: MONITOR SERVER | INSTALL PROMETHEUS+GRAFANA PACKAGES 
       yum:
@@ -39,29 +44,34 @@
           - setroubleshoot-server
         state: present
  
- 
+Копируем заранее подготовленный конфиг prometheus
+
     - name: MONITOR SERVER | COPY PROMETHEUS CONFIG
       copy:
         src: files/prometheus.yml
         dest: /etc/prometheus/
         force: yes
     
-    
+Создаем юнит prometheus
+
     - name: MONITOR SERVER | COPY PROMETHEUS UNIT
       copy:
         src: files/prometheus.service
         dest: /etc/systemd/system/
         force: yes 
-        
+
+Перезагружаем демоны systemd
     
     - name: MONITOR SERVER | DAEMON RELOAD
       systemd:
         daemon-reload: yes 
         
+Настраиваем firewalld для prometheus        
     
     - name: MONITOR SERVER | CONFIG FIREWALLD FOR PROMETHEUS
       shell: firewall-cmd --permanent --zone=public --add-port=9100/tcp ; firewall-cmd --permanent --zone=public --add-port=9090/tcp ; firewall-cmd --permanent --zone=public --add-port=3000/tcp ; firewall-cmd --reload
   
+Запускаем и активируем сервисы  
   
     - name: MONITOR SERVER | START NODE_EXPORTER
       systemd:
@@ -83,7 +93,7 @@
         state: started
         enabled: yes 
         
-        
+ Создаем источник данных для grafana       
     
     - name: MONITOR SERVER | CREATE GRAFANA DATA SOURCE
       community.grafana.grafana_datasource:
@@ -97,7 +107,7 @@
         is_default: yes
         state: present
       
-    
+Создаем dashboard на основе заготовленного json    
     
     - name: MONITOR SERVER | COPY GRAFANA JSON
       copy:
@@ -116,7 +126,8 @@
         grafana_password: "admin"
         path: /root/dashboard.json
         
-    
+Далее идет блок для сервера сбора логов
+
     #==================================== LOGS SERVER ==================================================    
     
     - name: LOGS SERVER | CREATE DIR FOR JORNAL-REMOTE
