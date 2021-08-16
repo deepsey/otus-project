@@ -68,6 +68,31 @@
         name: myiptables-restore.service
         enabled: yes
 
+Блок для мониторинга
+
+    #================================= Configure monitoring ==============================================
+
+Устанавливаем node_exporter
+
+    - name: BACKUP SERVER FOR MONITORING | INSTALL PROMETHEUS NODE_EXPORTER 
+      yum:
+      name: golang-github-prometheus-node-exporter
+      state: present 
+      
+Настраиваем firewalld
+
+    - name: BACKUP SERVER FOR MONITORING | CONFIG FIREWALLD FOR NODE_EXPORTER
+      shell: firewall-cmd --permanent --zone=public --add-port=9100/tcp ; firewall-cmd --reload
+      
+Активируем и запускаем node_exporter
+
+    - name: BACKUP SERVER FOR MONITORING | START NODE_EXPORTER
+      systemd:
+        name: node_exporter
+        state: started
+        enabled: yes   
+    
+
 Далее идет настройка отправки логов на центральный сервер
 
     #================================ Configure logs ===================================================    
