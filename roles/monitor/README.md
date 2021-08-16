@@ -15,7 +15,7 @@
 
     # tasks file for monitor
     
-Блок настройки мониторинга
+Блок настройки сервера мониторинга
 
     #=========================== MONITORING SERVER ============================================================
     
@@ -131,6 +131,8 @@
 
     #==================================== LOGS SERVER ==================================================    
     
+Настраиваем пассивный режим работы демона systemd-journal-remote  
+    
     - name: LOGS SERVER | CREATE DIR FOR JORNAL-REMOTE
       file:
         path: /var/log/journal/remote
@@ -139,6 +141,7 @@
         group: systemd-journal-remote
         owner: systemd-journal-remote
         
+Настраиваем запуск демона systemd-journal-remote при старте системы
 
     - name: LOGS SERVER  | COPY  systemd-journal-remote.timer
       copy:
@@ -146,17 +149,20 @@
         dest: /etc/systemd/system/
        force: yes    
        
-       
+Копируем измененный unit systemd-journal-remote.service
+
     - name: LOGS SERVER  | COPY  systemd-journal-remote.service
       copy:
         src: files/systemd-journal-remote.service
         dest: /etc/systemd/system/
         force: yes   
         
+Настраиваем файрволл для работы сбора логов    
     
     - name: LOGS SERVER  | CONFIG FIREWALLD FOR LOGS
       shell: firewall-cmd --permanent --zone=public --add-port=19532/tcp ; firewall-cmd --reload
       
+ Перезагружаем демоны и стартуем сервисы     
     
     - name: LOGS SERVER  | DAEMON RELOAD
       systemd:
@@ -183,6 +189,7 @@
         enabled: yes
         state: started  
         
+Настраиваем SELinux для работы сервера сбора логов
 
     - name: LOGS SERVER  | CONFIGURE SELINUX FOR JOURNAL-REMOTE
       shell: setsebool -P use_virtualbox 1       
