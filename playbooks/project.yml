@@ -1,11 +1,11 @@
 ---
 
-##- name: WEB SERVER | CONFIGURE AND APP INSTALL
-##  hosts: monitor
-##  become: true
+- name: MONITOR SERVER | CONFIGURE AND APP INSTALL
+  hosts: monitor
+  become: true
   
-##  roles:
-##  - roles/monitor
+  roles:
+  - roles/monitor
   
 - name: BACKUP SERVER | CONFIGURE BACKUP REPOSITORY
   hosts: backup
