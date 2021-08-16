@@ -36,6 +36,22 @@
   systemd:
     name: myiptables-restore.service
     enabled: yes
+    
+#================================= Configure monitoring ==============================================
+  
+- name: MYSQL SERVER FOR MONITORING | INSTALL PROMETHEUS NODE_EXPORTER 
+  yum:
+    name: golang-github-prometheus-node-exporter
+    state: present 
+    
+- name: MYSQL SERVER FOR MONITORING | CONFIG FIREWALLD FOR NODE_EXPORTER
+  shell: firewall-cmd --permanent --zone=public --add-port=9100/tcp ; firewall-cmd --reload
+  
+- name: MYSQL SERVER FOR MONITORING | START NODE_EXPORTER
+  systemd:
+    name: node_exporter
+    state: started
+    enabled: yes      
 
         
 #================================ Configure logs ===================================================    
