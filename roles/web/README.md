@@ -111,7 +111,7 @@
         owner: vagrant    
     
     - name: WEB SERVER | COPY SSL CERTS FOR SITE
-      copy:systemd-journal-gateway
+      copy:
         src: '{{item}}' 
         dest: /var/www/site.project/certs/
       loop:
